@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Football Goal Game</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --panel: #11213a;
+      --text: #f5f8ff;
+      --muted: #9eb0c8;
+      --accent: #30c46a;
+      --accent-2: #1e7d46;
+      --goal: #ffffff;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0d1b2d, #17324d 60%, #08111d);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+    }
+
+    .game-box {
+      width: min(94vw, 820px);
+      background: rgba(17, 33, 58, 0.95);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 24px;
+      padding: 22px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35);
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .top-bar h1 { margin: 0; font-size: 1.5rem; }
+    .top-bar p { margin: 4px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+    .score-card {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      padding: 12px 16px;
+      border-radius: 14px;
+      text-align: center;
+      font-weight: 700;
+      min-width: 130px;
+    }
+
+    .score-card span { display: block; font-size: 0.82rem; opacity: 0.95; }
+
+    #playArea {
+      position: relative;
+      width: 100%;
+      height: 440px;
+      border-radius: 18px;
+      overflow: hidden;
+      background: linear-gradient(180deg, #0e7a3b, #1e9b52 55%, #0d5a31);
+      border: 2px solid rgba(255,255,255,0.16);
+      cursor: default;
+    }
+
+    .line {
+      position: absolute;
+      background: rgba(255,255,255,0.7);
+      height: 2px;
+      width: 100%;
+      left: 0;
+    }
+
+    .line.mid { top: 50%; }
+    .line.penalty { top: 68%; }
+
+    .goal {
+      position: absolute;
+      right: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 90px;
+      height: 170px;
+      border: 6px solid var(--goal);
+      border-left: none;
+      border-radius: 0 18px 18px 0;
+      box-shadow: 0 0 20px rgba(255,255,255,0.25);
+    }
+
+    #keeper {
+      position: absolute;
+      width: 40px;
+      height: 100px;
+      left: calc(100% - 140px);
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #keeper .keeper-head {
+      width: 26px;
+      height: 26px;
+      background: #f3cc93;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 7px;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.25);
+    }
+
+    #keeper .keeper-body {
+      position: absolute;
+      top: 24px;
+      left: 10px;
+      width: 20px;
+      height: 40px;
+      background: #ffd700;
+      border-radius: 10px;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.12);
+    }
+
+    #keeper .keeper-arm {
+      position: absolute;
+      top: 38px;
+      width: 8px;
+      height: 24px;
+      background: #ffd700;
+      border-radius: 8px;
+      transform-origin: top center;
+    }
+
+    #keeper .keeper-arm.left {
+      left: 0;
+      transform: rotate(-25deg);
+    }
+
+    #keeper .keeper-arm.right {
+      right: 0;
+      transform: rotate(25deg);
+    }
+
+    #player {
+      position: absolute;
+      width: 24px;
+      height: 90px;
+      left: 60px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    #player .head {
+      width: 20px;
+      height: 20px;
+      background: #f3cc93;
+      border-radius: 50%;
+      position: absolute;
+      top: 0;
+      left: 2px;
+      box-shadow: inset 0 0 4px rgba(0,0,0,0.25);
+    }
+
+    #player .body {
+      position: absolute;
+      top: 20px;
+      left: 8px;
+      width: 8px;
+      height: 32px;
+      background: #1f6b28;
+      border-radius: 6px;
+    }
+
+    #player .leg {
+      position: absolute;
+      top: 48px;
+      width: 6px;
+      height: 24px;
+      background: #153f17;
+      border-radius: 4px;
+    }
+
+    #player .leg.left { left: 0; transform: rotate(-15deg); }
+    #player .leg.right { left: 14px; transform: rotate(15deg); }
+
+    #target {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(255, 230, 50, 0.95);
+      border: 3px solid rgba(255, 255, 255, 0.9);
+      box-shadow: 0 0 14px rgba(255,255,255,0.5);
+      cursor: move;
+      transform: translate(-50%, -50%);
+      touch-action: none;
+    }
+
+    #aimArrow {
+      position: absolute;
+      width: 0;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 999px;
+      transform-origin: left center;
+      pointer-events: none;
+      transition: width 0.08s ease, transform 0.08s ease;
+      box-shadow: 0 0 12px rgba(255,255,255,0.7);
+    }
+
+    #aimArrow::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      width: 12px;
+      height: 12px;
+      background: rgba(255,255,255,0.95);
+      transform: translate(50%, -50%) rotate(45deg);
+      clip-path: polygon(0 0, 100% 50%, 0 100%);
+    }
+
+    #ball {
+      position: absolute;
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff, #e2e2e2 35%, #b4b4b4 70%, #7a7a7a);
+      box-shadow: 0 0 16px rgba(255,255,255,0.35);
+      transform: translate(-50%, -50%);
+      transition: left 0.5s ease, top 0.5s ease;
+      cursor: pointer;
+    }
+
+    button {
+      margin-top: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .timer-settings {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .timer-settings label {
+      font-size: 0.95rem;
+    }
+
+    .timer-settings input {
+      width: 64px;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
+
+    .footer {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.95rem;
+      text-align: center;
+    }
+
+    .result-message {
+      color: #e7f7ff;
+      font-size: 1rem;
+      min-height: 1.3rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-box">
+    <div class="top-bar">
+      <div>
+        <h1>Football Goal Challenge</h1>
+        <p>Shoot the ball into the goal and score!</p>
+      </div>
+      <div class="score-card">
+        <span>Goals</span>
+        <div id="score">0</div>
+      </div>
+    </div>
+
+    <div id="playArea">
+      <div class="line mid"></div>
+      <div class="line penalty"></div>
+      <div class="goal"></div>
+      <div id="keeper">
+        <div class="keeper-head"></div>
+        <div class="keeper-body"></div>
+        <div class="keeper-arm left"></div>
+        <div class="keeper-arm right"></div>
+      </div>
+      <div id="player">
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="leg left"></div>
+        <div class="leg right"></div>
+      </div>
+      <div id="ball"></div>
+      <div id="aimArrow"></div>
+      <div id="target"></div>
+    </div>
+
+    <div class="footer">
+      <div class="timer-settings">
+        <label for="matchSeconds">Match time:</label>
+        <input id="matchSeconds" type="number" min="5" value="10" />
+        <span>seconds</span>
+      </div>
+      <button id="startButton" onclick="startGame()">Start Match</button>
+      <div id="timerInfo">Time left: <strong id="timer">10</strong>s</div>
+      <div id="result" class="result-message">Press Start Match to begin and score as many goals as you can.</div>
+    </div>
+  </div>
+
+  <script>
+    const playArea = document.getElementById('playArea');
+    const ball = document.getElementById('ball');
+    const aimArrow = document.getElementById('aimArrow');
+    const target = document.getElementById('target');
+    const startButton = document.getElementById('startButton');
+    const scoreEl = document.getElementById('score');
+    const resultEl = document.getElementById('result');
+
+    let score = 0;
+    let gameActive = false;
+    let hasAttempted = false;
+    let attemptCooldown = false;
+    let matchTime = 10;
+    let timerId = null;
+    let keeperMoveId = null;
+    let targetPosition = { x: 0, y: 0 };
+    let audioContext = null;
+    let musicGain = null;
+    let musicOscillators = [];
+
+    function updateScore() {
+      scoreEl.textContent = score;
+    }
+
+    function updateTimer() {
+      document.getElementById('timer').textContent = matchTime;
+    }
+
+    function showResult(message) {
+      resultEl.textContent = message;
+      startButton.textContent = 'Try Again';
+    }
+
+    function startMusic() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        musicGain = audioContext.createGain();
+        musicGain.gain.value = 0;
+        musicGain.connect(audioContext.destination);
+
+        [110, 165, 220].forEach((freq, index) => {
+          const osc = audioContext.createOscillator();
+          osc.type = index === 0 ? 'sine' : index === 1 ? 'triangle' : 'sawtooth';
+          osc.frequency.value = freq;
+          osc.connect(musicGain);
+          osc.start();
+          musicOscillators.push(osc);
+        });
+      }
+
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+      musicGain.gain.cancelScheduledValues(audioContext.currentTime);
+      musicGain.gain.setTargetAtTime(0.12, audioContext.currentTime, 0.1);
+    }
+
+    function stopMusic() {
+      if (!audioContext) return;
+      musicGain.gain.cancelScheduledValues(audioContext.currentTime);
+      musicGain.gain.setTargetAtTime(0, audioContext.currentTime, 0.2);
+    }
+
+    function getShotTargetPoint(ballCenter, target, goalArea) {
+      const dx = target.x - ballCenter.x;
+      const dy = target.y - ballCenter.y;
+      const releaseX = goalArea.right - 24;
+      const travelX = releaseX - ballCenter.x;
+      let finishY = ballCenter.y + (dy / Math.max(Math.abs(dx), 1)) * travelX;
+      if (dx <= 8) {
+        finishY = ballCenter.y + dy * 0.7;
+      }
+      return {
+        x: releaseX,
+        y: Math.min(Math.max(goalArea.top + 20, finishY), goalArea.bottom - 20)
+      };
+    }
+
+    function updateAimArrow() {
+      const rect = playArea.getBoundingClientRect();
+      const ballRect = ball.getBoundingClientRect();
+      const ballCenter = {
+        x: ballRect.left - rect.left + ballRect.width / 2,
+        y: ballRect.top - rect.top + ballRect.height / 2
+      };
+      const dx = targetPosition.x - ballCenter.x;
+      const dy = targetPosition.y - ballCenter.y;
+      const distance = Math.max(40, Math.min(220, Math.hypot(dx, dy)));
+      const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      aimArrow.style.width = `${distance}px`;
+      aimArrow.style.left = `${ballCenter.x}px`;
+      aimArrow.style.top = `${ballCenter.y}px`;
+      aimArrow.style.transform = `translateY(-50%) rotate(${angle}deg)`;
+    }
+
+    function placeBallNextToPlayer() {
+      const areaRect = playArea.getBoundingClientRect();
+      const playerRect = document.getElementById('player').getBoundingClientRect();
+      const x = playerRect.left - areaRect.left + playerRect.width + 20;
+      const y = playerRect.top - areaRect.top + playerRect.height / 2;
+      ball.style.left = `${x}px`;
+      ball.style.top = `${y}px`;
+      ball.style.transition = 'left 0.5s ease, top 0.5s ease';
+      updateAimArrow();
+    }
+
+    function placeTarget() {
+      const areaRect = playArea.getBoundingClientRect();
+      const goalRect = document.querySelector('.goal').getBoundingClientRect();
+      const x = goalRect.left - areaRect.left + goalRect.width / 2;
+      const y = goalRect.top - areaRect.top + goalRect.height / 2;
+      targetPosition = { x, y };
+      target.style.left = `${x}px`;
+      target.style.top = `${y}px`;
+      updateAimArrow();
+    }
+
+    function moveKeeper() {
+      if (keeperMoveId) {
+        clearInterval(keeperMoveId);
+      }
+      const areaRect = playArea.getBoundingClientRect();
+      const goalRect = document.querySelector('.goal').getBoundingClientRect();
+      const keeper = document.getElementById('keeper');
+      const minX = goalRect.left - areaRect.left + 10;
+      const maxX = goalRect.left - areaRect.left + goalRect.width - 50;
+      const topBase = goalRect.top - areaRect.top + goalRect.height / 2;
+      keeper.style.left = `${minX}px`;
+      keeper.style.top = `${topBase}px`;
+      let direction = 1;
+      let pos = minX;
+
+      keeperMoveId = setInterval(() => {
+        pos += direction * 3;
+        if (pos <= minX || pos >= maxX) direction *= -1;
+        keeper.style.left = `${pos}px`;
+      }, 50);
+    }
+
+    function enableTargetDrag() {
+      let dragging = false;
+
+      const onPointerMove = (event) => {
+        if (!dragging) return;
+        const areaRect = playArea.getBoundingClientRect();
+        const x = Math.min(Math.max(20, event.clientX - areaRect.left), areaRect.width - 20);
+        const y = Math.min(Math.max(20, event.clientY - areaRect.top), areaRect.height - 20);
+        targetPosition = { x, y };
+        target.style.left = `${x}px`;
+        target.style.top = `${y}px`;
+      };
+
+      target.addEventListener('pointerdown', () => {
+        dragging = true;
+      });
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', () => {
+        dragging = false;
+      });
+    }
+
+    enableTargetDrag();
+
+    function finishMatch() {
+      gameActive = false;
+      hasAttempted = true;
+      startButton.disabled = false;
+      showResult(`Match over! Total goals: ${score}`);
+      clearInterval(timerId);
+      clearInterval(keeperMoveId);
+      stopMusic();
+    }
+
+    function startGame() {
+      if (attemptCooldown) return;
+      score = 0;
+      const matchSeconds = parseInt(document.getElementById('matchSeconds').value, 10) || 10;
+      matchTime = Math.max(5, matchSeconds);
+      gameActive = true;
+      hasAttempted = false;
+      attemptCooldown = false;
+      resultEl.textContent = 'Drag the target to aim left, straight, or right, then click the ball.';
+      startButton.textContent = 'Kick Again';
+      startButton.disabled = false;
+      updateScore();
+      updateTimer();
+      placeBallNextToPlayer();
+      placeTarget();
+      moveKeeper();
+      startMusic();
+      updateAimArrow();
+      clearInterval(timerId);
+      timerId = setInterval(() => {
+        matchTime -= 1;
+        updateTimer();
+        if (matchTime <= 0) {
+          finishMatch();
+        }
+      }, 1000);
+    }
+
+    function lockAttempts(seconds) {
+      attemptCooldown = true;
+      startButton.disabled = true;
+      setTimeout(() => {
+        attemptCooldown = false;
+        if (gameActive) startButton.disabled = false;
+        startButton.textContent = 'Kick Again';
+      }, seconds * 1000);
+    }
+    function keeperIntercept(shotFinish) {
+      const keeper = document.getElementById('keeper');
+      const areaRect = playArea.getBoundingClientRect();
+      const keeperRect = keeper.getBoundingClientRect();
+      const keeperHalf = keeperRect.width / 2;
+      // Predict intercept X (keep inside goal mouth)
+      const goalRect = playArea.querySelector('.goal').getBoundingClientRect();
+      const minX = goalRect.left - areaRect.left + 8;
+      const maxX = goalRect.left - areaRect.left + goalRect.width - 48;
+      let interceptX = shotFinish.x - keeperHalf;
+      interceptX = Math.min(Math.max(minX, interceptX), maxX);
+
+      // stop patrol while intercepting
+      if (keeperMoveId) {
+        clearInterval(keeperMoveId);
+        keeperMoveId = null;
+      }
+
+      keeper.style.transition = 'left 0.45s ease';
+      keeper.style.left = `${interceptX}px`;
+
+      // small arm raise for effect
+      const leftArm = keeper.querySelector('.keeper-arm.left');
+      const rightArm = keeper.querySelector('.keeper-arm.right');
+      if (leftArm && rightArm) {
+        leftArm.style.transition = 'transform 0.2s ease';
+        rightArm.style.transition = 'transform 0.2s ease';
+        leftArm.style.transform = 'rotate(-55deg)';
+        rightArm.style.transform = 'rotate(55deg)';
+      }
+
+      // restore arms and patrol after a short delay
+      setTimeout(() => {
+        if (leftArm && rightArm) {
+          leftArm.style.transform = 'rotate(-25deg)';
+          rightArm.style.transform = 'rotate(25deg)';
+        }
+        moveKeeper();
+      }, 900);
+    }
+
+    function attemptShot(event) {
+      if (!gameActive || hasAttempted || attemptCooldown) return;
+      event.stopPropagation();
+      hasAttempted = true;
+
+      const rect = playArea.getBoundingClientRect();
+      const goalRect = playArea.querySelector('.goal').getBoundingClientRect();
+      const goalArea = {
+        left: goalRect.left - rect.left,
+        right: goalRect.right - rect.left,
+        top: goalRect.top - rect.top,
+        bottom: goalRect.bottom - rect.top,
+        width: goalRect.width,
+        height: goalRect.height
+      };
+
+      const ballRect = ball.getBoundingClientRect();
+      const ballCenter = {
+        x: ballRect.left - rect.left + ballRect.width / 2,
+        y: ballRect.top - rect.top + ballRect.height / 2
+      };
+      const shotFinish = getShotTargetPoint(ballCenter, targetPosition, goalArea);
+
+      // Keeper tries to intercept based on predicted finish
+      keeperIntercept(shotFinish);
+
+      // Delay ball movement slightly so keeper can react
+      setTimeout(() => {
+        ball.style.left = `${shotFinish.x}px`;
+        ball.style.top = `${shotFinish.y}px`;
+      }, 160);
+
+      // Evaluate result after ball arrives (animation ~500ms)
+      setTimeout(() => {
+        const keeperRectNow = document.getElementById('keeper').getBoundingClientRect();
+        const keeperArea = {
+          left: keeperRectNow.left - rect.left,
+          right: keeperRectNow.right - rect.left,
+          top: keeperRectNow.top - rect.top,
+          bottom: keeperRectNow.bottom - rect.top
+        };
+
+        const hitTargetInsideGoal = shotFinish.x >= goalArea.left && shotFinish.x <= goalArea.right && shotFinish.y >= goalArea.top && shotFinish.y <= goalArea.bottom;
+        const keeperBlocked = shotFinish.x >= keeperArea.left && shotFinish.x <= keeperArea.right && shotFinish.y >= keeperArea.top && shotFinish.y <= keeperArea.bottom;
+
+        if (hitTargetInsideGoal && !keeperBlocked) {
+          score += 1;
+          updateScore();
+          const message = score === 1 ? 'Goal scored!' : `Another goal scored! Total: ${score}`;
+          showResult(message);
+        } else if (hitTargetInsideGoal && keeperBlocked) {
+          showResult('Saved! The keeper blocked your shot.');
+        } else {
+          showResult('Missed! The ball went wide.');
+        }
+
+        lockAttempts(3);
+        setTimeout(() => {
+          placeBallNextToPlayer();
+          hasAttempted = false;
+        }, 800);
+        if (matchTime <= 0) {
+          finishMatch();
+        }
+      }, 700);
+    }
+
+    ball.addEventListener('click', attemptShot);
+    ball.addEventListener('pointerdown', attemptShot);
+  </script>
+</body>
+</html>
